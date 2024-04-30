@@ -2,7 +2,7 @@
 
 extern crate alloc;
 
-use alloc::{string::String, vec::Vec};
+use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use core::{cell::RefCell, mem};
 use num_traits::{FromPrimitive, PrimInt};
 
@@ -74,6 +74,14 @@ impl From<Type> for u64 {
 pub struct Field {
     tag: u64,
     r#type: Type,
+}
+
+pub trait ProtoRead {
+    fn read(&mut self, tag: u64, pbf: &mut Protobuf);
+}
+
+pub trait ProtoWrite {
+    fn write(&self, pbf: &mut Protobuf);
 }
 
 pub struct Protobuf {
@@ -228,6 +236,36 @@ impl Protobuf {
         res
     }
 
+    /// If the length of the struct or enum is already known
+    /// you use this function over "read_message"
+    /// Top level parsing uses read_fields, whereas
+    /// when you come across a nested message, you use read_message
+    pub fn read_fields<T: ProtoRead>(&mut self, t: &mut T) {
+        let end = self.len;
+
+        while self.pos < end {
+            let field = self.read_field();
+            let start_pos = self.pos;
+            t.read(field.tag, self);
+            if start_pos == self.pos {
+                self.skip(field.r#type);
+            }
+        }
+    }
+
+    pub fn read_message<T: ProtoRead>(&mut self, t: &mut T) {
+        let end = self.read_value() as usize + self.pos;
+
+        while self.pos < end {
+            let field = self.read_field();
+            let start_pos = self.pos;
+            t.read(field.tag, self);
+            if start_pos == self.pos {
+                self.skip(field.r#type);
+            }
+        }
+    }
+
     // === WRITING =================================================================
 
     fn write_varint(&mut self, val: u64) {
@@ -255,14 +293,6 @@ impl Protobuf {
         self.write_varint(zigzag(val));
     }
 
-    fn write_value<T>(&mut self, val: T)
-    where
-        T: Into<u64>,
-    {
-        let val = Into::<u64>::into(val);
-        self.write_varint(val);
-    }
-
     fn write_fixed<T>(&mut self, val: T)
     where
         T: Into<u64>,
@@ -280,6 +310,93 @@ impl Protobuf {
             buf.push((val >> (n << 3)) as u8);
             n += 1;
         }
+    }
+
+    fn write_field(&mut self, tag: u64, r#type: Type) {
+        let b: u64 = (tag << 3) | Into::<u64>::into(r#type);
+        self.write_varint(b);
+    }
+
+    fn write_length_varint(&mut self, tag: u64, val: usize) {
+        self.write_field(tag, Type::Bytes);
+        self.write_varint(val as u64);
+    }
+
+    pub fn write_varint_field<T>(&mut self, tag: u64, val: T)
+    where
+        T: Into<u64>,
+    {
+        self.write_field(tag, Type::Varint);
+        self.write_varint(Into::<u64>::into(val));
+    }
+
+    pub fn write_s_varint_field<T>(&mut self, tag: u64, val: i64)
+    where
+        T: Into<i64>,
+    {
+        self.write_field(tag, Type::Varint);
+        self.write_s_varint(Into::<i64>::into(val));
+    }
+
+    pub fn write_packed_varint<T>(&mut self, tag: u64, val: &[T])
+    where
+        T: Into<u64> + Copy,
+    {
+        let mut bytes: Vec<u8> = Vec::new();
+        for &v in val {
+            Protobuf::write_varint_to_buffer(&mut bytes, v.into());
+        }
+
+        self.write_length_varint(tag, bytes.len());
+        let mut buf = self.buf.borrow_mut();
+        buf.append(&mut bytes.to_owned());
+    }
+
+    pub fn write_packed_s_varint<T>(&mut self, tag: u64, val: &[T])
+    where
+        T: Into<i64> + Copy,
+    {
+        let mut bytes: Vec<u8> = Vec::new();
+        for &v in val {
+            Protobuf::write_varint_to_buffer(&mut bytes, zigzag(v.into()));
+        }
+
+        self.write_length_varint(tag, bytes.len());
+        let mut buf = self.buf.borrow_mut();
+        buf.append(&mut bytes.to_owned());
+    }
+
+    pub fn write_fixed_field<T>(&mut self, tag: u64, val: T)
+    where
+        T: Into<u64> + Copy,
+    {
+        self.write_field(tag, Type::Fixed64);
+        self.write_fixed(val);
+    }
+
+    pub fn write_string_field(&mut self, tag: u64, val: &str) {
+        self.write_length_varint(tag, val.len());
+        let mut buf = self.buf.borrow_mut();
+        buf.extend_from_slice(val.as_bytes());
+    }
+
+    pub fn write_bytes_field(&mut self, tag: u64, val: &[u8]) {
+        self.write_length_varint(tag, val.len());
+        let mut buf = self.buf.borrow_mut();
+        buf.extend_from_slice(val)
+    }
+
+    pub fn write_message<T: ProtoWrite>(&mut self, tag: u64, t: &T) {
+        let mut pbf = Protobuf::new();
+        t.write(&mut pbf);
+        let bytes = pbf.take();
+        self.write_length_varint(tag, bytes.len());
+        let mut buf = self.buf.borrow_mut();
+        buf.extend_from_slice(&bytes);
+    }
+
+    pub fn take(&mut self) -> Vec<u8> {
+        self.buf.take()
     }
 }
 
