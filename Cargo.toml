@@ -19,7 +19,6 @@ bench = false
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-num-traits = "0.2"
 
 [features]
 default = ["std"]
@@ -27,4 +26,3 @@ std = []
 
 [profile.bench]
 opt-level = 3
-
