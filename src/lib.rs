@@ -1,5 +1,13 @@
 #![no_std]
+#![deny(missing_docs)]
+//! The `pbf` Rust crate provides functionalities to read and write Protocol Buffers (protobuf) messages.
+//! This crate is a 0 dependency package that uses `no_std` and is intended to be used in
+//! embedded systems and WASM applications. The crate is designed to be small and efficient,
+//! with the cost of some features and flexibility. It is up to the user to create the necessary
+//! data structures and implement the `ProtoRead` and `ProtoWrite` traits in order to use it effectively.
 
+/// All encoding and decoding is done via u64.
+/// So all types must implement this trait to be able to be encoded and decoded.
 pub mod bit_cast;
 
 extern crate alloc;
@@ -11,14 +19,26 @@ use core::{cell::RefCell, mem::size_of};
 const MAX_VARINT_LENGTH: usize = u64::BITS as usize * 8 / 7 + 1;
 const BIT_SHIFT: [u64; 10] = [0, 7, 14, 21, 28, 35, 42, 49, 56, 63];
 
+/// The `Type` enum represents the different types that a field can have in a protobuf message.
+/// The `Type` enum is used to determine how to encode and decode the field.
 #[derive(Debug, PartialEq)]
 pub enum Type {
-    Varint = 0,  // varint: int32, int64, uint32, uint64, sint32, sint64, bool, enum
-    Fixed64 = 1, // 64-bit: double, fixed64, sfixed64
-    Bytes = 2,   // len-delimited: string, bytes, embedded messages, packed repeated fields
-    Fixed32 = 5, // 32-bit: float, fixed32, sfixed32
+    /// Varint may be: int32, int64, uint32, uint64, sint32, sint64, bool, enum
+    Varint = 0,
+    /// Fixed 64-bit numbers will take up exactly 64 bits of space
+    /// They may be u64, i64, or f64
+    Fixed64 = 1,
+    /// This includes any len-delimited tyles:
+    /// string, bytes, embedded messages, packed repeated fields
+    Bytes = 2,
+    /// Fixed 32-bit numbers will take up exactly 64 bits of space
+    /// They may be an u32, i32, or f32
+    Fixed32 = 5,
 }
 impl From<u8> for Type {
+    /// Convert a u8 to a Type
+    /// # Panics
+    /// If the value is not a valid Type
     fn from(val: u8) -> Self {
         match val & 0x7 {
             0 => Type::Varint,
@@ -40,35 +60,182 @@ impl From<Type> for u64 {
     }
 }
 
+/// The `Field` struct represents a field in a protobuf message.
+/// The `Field` struct contains a tag and a type.
+/// The tag is used to track the data type in the message for decoding.
+/// The type is used to determine how to encode and decode the field.
 #[derive(Debug, PartialEq)]
 pub struct Field {
     tag: u64,
     r#type: Type,
 }
 
+/// The `ProtoRead` trait is used to read a protobuf **message**.
+/// This crate forces the user to implement this trait in order to read a protobuf message.
+///
+/// # Example
+/// Using OSM File Format [BlobHeader](https://github.com/openstreetmap/OSM-binary/blob/65e7e976f5c8e47f057a0d921639ea8e6309ef06/osmpbf/fileformat.proto#L63) as an example:
+/// ```proto
+/// message BlobHeader {
+///     required string type = 1;
+///     optional bytes indexdata = 2;
+///     required int32 datasize = 3;
+/// }
+/// ```
+/// The user would implement the `ProtoRead` trait for the `BlobHeader` struct.
+/// ```
+/// use pbf::{ProtoRead, Protobuf};
+///
+/// struct BlobHeader {
+///     r#type: String,
+///     indexdata: Vec<u8>,
+///     datasize: i32,
+/// }
+/// impl ProtoRead for BlobHeader {
+///    fn read(&mut self, tag: u64, pbf: &mut Protobuf) {
+///       match tag {
+///          1 => self.r#type = pbf.read_string(),
+///          2 => self.indexdata = pbf.read_bytes(),
+///          3 => self.datasize = pbf.read_varint::<i32>(),
+///          _ => unreachable!(),
+///       }
+///    }
+/// }
+/// ```
 pub trait ProtoRead {
+    /// The `read` method is used to read a field from a protobuf message.
+    /// The `tag` parameter is used to determine which field to read into the struct.
+    /// The `pbf` parameter is used to read the data in the appropriate format.
+    ///
+    /// # Example
+    /// Using OSM File Format [BlobHeader](https://github.com/openstreetmap/OSM-binary/blob/65e7e976f5c8e47f057a0d921639ea8e6309ef06/osmpbf/fileformat.proto#L63) as an example:
+    /// ```proto
+    /// message BlobHeader {
+    ///     required string type = 1;
+    ///     optional bytes indexdata = 2;
+    ///     required int32 datasize = 3;
+    /// }
+    /// ```
+    /// An example **read** implementation for a `BlobHeader` struct:
+    /// ```
+    /// use pbf::{ProtoRead, Protobuf};
+    ///
+    /// struct BlobHeader {
+    ///     r#type: String,
+    ///     indexdata: Vec<u8>,
+    ///     datasize: i32,
+    /// }
+    /// impl ProtoRead for BlobHeader {
+    ///    fn read(&mut self, tag: u64, pbf: &mut Protobuf) {
+    ///       match tag {
+    ///          1 => self.r#type = pbf.read_string(),
+    ///          2 => self.indexdata = pbf.read_bytes(),
+    ///          3 => self.datasize = pbf.read_varint::<i32>(),
+    ///          _ => unreachable!(),
+    ///       }
+    ///    }
+    /// }
+    /// ```
     fn read(&mut self, tag: u64, pbf: &mut Protobuf);
 }
 
+/// The `ProtoWrite` trait is used to write a protobuf **message**.
+/// This crate forces the user to implement this trait in order to write a protobuf message.
+///
+/// # Example
+/// Using OSM File Format [BlobHeader](https://github.com/openstreetmap/OSM-binary/blob/65e7e976f5c8e47f057a0d921639ea8e6309ef06/osmpbf/fileformat.proto#L63) as an example:
+/// ```proto
+/// message BlobHeader {
+///     required string type = 1;
+///     optional bytes indexdata = 2;
+///     required int32 datasize = 3;
+/// }
+/// ```
+/// The user would implement the `ProtoWrite` trait for the `BlobHeader` struct.
+/// ```
+/// use pbf::{ProtoWrite, Protobuf};
+///
+/// struct BlobHeader {
+///    r#type: String,
+///   indexdata: Vec<u8>,
+///   datasize: i32,
+/// }
+/// impl ProtoWrite for BlobHeader {
+///     fn write(&self, pbf: &mut Protobuf) {
+///         pbf.write_string_field(1, &self.r#type);
+///         pbf.write_bytes_field(2, &self.indexdata);
+///         pbf.write_varint_field(3, self.datasize);
+///     }
+/// }
+/// ```
 pub trait ProtoWrite {
+    /// The `write` method is used to write a field to a protobuf message.
+    /// The `pbf` parameter is used to write the data in the appropriate format.
+    ///
+    /// # Example
+    /// Using OSM File Format [BlobHeader](https://github.com/openstreetmap/OSM-binary/blob/65e7e976f5c8e47f057a0d921639ea8e6309ef06/osmpbf/fileformat.proto#L63) as an example:
+    /// ```proto
+    /// message BlobHeader {
+    ///     required string type = 1;
+    ///     optional bytes indexdata = 2;
+    ///     required int32 datasize = 3;
+    /// }
+    /// ```
+    /// An example **write** implementation for a `BlobHeader` struct:
+    /// ```
+    /// use pbf::{ProtoWrite, Protobuf};
+    ///
+    /// struct BlobHeader {
+    ///    r#type: String,
+    ///   indexdata: Vec<u8>,
+    ///   datasize: i32,
+    /// }
+    /// impl ProtoWrite for BlobHeader {
+    ///     fn write(&self, pbf: &mut Protobuf) {
+    ///         pbf.write_string_field(1, &self.r#type);
+    ///         pbf.write_bytes_field(2, &self.indexdata);
+    ///         pbf.write_varint_field(3, self.datasize);
+    ///     }
+    /// }
+    /// ```
     fn write(&self, pbf: &mut Protobuf);
 }
 
+/// The `Protobuf` struct is used to read and write protobuf messages.
+///
+/// # Example
+/// Create a new Protobuf instance:
+/// ```
+/// use pbf::Protobuf;
+///
+/// let mut pbf = Protobuf::new();
+/// ```
+/// Create a Protobuf instance from a byte buffer:
+/// ```
+/// use pbf::Protobuf;
+/// use std::cell::RefCell; // or use core::cell::RefCell; if sticking with no_std
+///
+/// let mut buf = vec![0x0A, 0x03, 0x74, 0x65, 0x73, 0x74];
+/// let mut pbf = Protobuf::from_input(RefCell::new(buf));
+/// ```
 #[derive(Default)]
 pub struct Protobuf {
     buf: RefCell<Vec<u8>>,
     pos: usize,
 }
 impl Protobuf {
+    /// Create a new Protobuf instance.
     pub fn new() -> Protobuf {
         let buf = RefCell::new(Vec::new());
         Protobuf { buf, pos: 0 }
     }
 
+    /// Create a Protobuf instance from a byte buffer.
     pub fn from_input(buf: RefCell<Vec<u8>>) -> Protobuf {
         Protobuf { buf, pos: 0 }
     }
 
+    /// Set the position to read from the buffer next.
     pub fn set_pos(&mut self, pos: usize) {
         self.pos = pos;
     }
@@ -102,6 +269,8 @@ impl Protobuf {
         val
     }
 
+    /// AFter reading a field, you can choose to skip it's value
+    /// in the buffer if it is not needed.
     pub fn skip(&mut self, t: Type) {
         match t {
             Type::Varint => _ = self.decode_varint(),
@@ -111,6 +280,7 @@ impl Protobuf {
         };
     }
 
+    /// Read a field from the buffer.
     pub fn read_field(&mut self) -> Field {
         let val = self.decode_varint();
         Field {
@@ -119,6 +289,7 @@ impl Protobuf {
         }
     }
 
+    /// Read in bytes from the buffer.
     pub fn read_bytes(&mut self) -> Vec<u8> {
         let end = self.decode_varint() as usize + self.pos;
         let buf = self.buf.borrow();
@@ -128,10 +299,12 @@ impl Protobuf {
         bytes
     }
 
+    /// Read in a string from the buffer.
     pub fn read_string(&mut self) -> String {
         String::from_utf8(self.read_bytes()).expect("Invalid UTF-8")
     }
 
+    /// Read in a fixed size value from the buffer.
     pub fn read_fixed<T>(&mut self) -> T
     where
         T: BitCast,
@@ -154,6 +327,7 @@ impl Protobuf {
         T::from_u64(val)
     }
 
+    /// Read in a variable size value from the buffer.
     pub fn read_varint<T>(&mut self) -> T
     where
         T: BitCast,
@@ -162,6 +336,10 @@ impl Protobuf {
         T::from_u64(val)
     }
 
+    /// Read in a signed variable size value from the buffer.
+    ///
+    /// # Panics
+    /// Panics if the conversion from `i64` to `T` fails.
     pub fn read_s_varint<T>(&mut self) -> T
     where
         T: TryFrom<i64>,
@@ -170,6 +348,7 @@ impl Protobuf {
             .unwrap_or_else(|_| panic!("read_s_varint: Invalid conversion"))
     }
 
+    /// Read in a packed value from the buffer.
     pub fn read_packed<T>(&mut self) -> Vec<T>
     where
         T: BitCast,
@@ -184,6 +363,7 @@ impl Protobuf {
         res
     }
 
+    /// Read in a signed packed value from the buffer.
     pub fn read_s_packed<T>(&mut self) -> Vec<T>
     where
         T: TryFrom<i64>,
@@ -197,23 +377,8 @@ impl Protobuf {
         res
     }
 
-    /// If the length of the struct or enum is already known
-    /// you use this function over "read_message"
-    /// Top level parsing uses read_fields, whereas
-    /// when you come across a nested message, you use read_message
-    pub fn read_fields<T: ProtoRead>(&mut self, t: &mut T) {
-        let end = self.buf.borrow().len();
-
-        while self.pos < end {
-            let field = self.read_field();
-            let start_pos = self.pos;
-            t.read(field.tag, self);
-            if start_pos == self.pos {
-                self.skip(field.r#type);
-            }
-        }
-    }
-
+    /// Read in an entire message from the buffer.
+    /// This is usually used to read in a struct or enum.
     pub fn read_message<T: ProtoRead>(&mut self, t: &mut T) {
         let end = self.decode_varint() as usize + self.pos;
 
@@ -283,6 +448,7 @@ impl Protobuf {
         self.write_varint(val as u64);
     }
 
+    /// write a variable sized number, bool, or enum into to the buffer.
     pub fn write_varint_field<T>(&mut self, tag: u64, val: T)
     where
         T: BitCast,
@@ -291,6 +457,7 @@ impl Protobuf {
         self.write_varint(val.to_u64());
     }
 
+    /// write a signed variable sized number into to the buffer.
     pub fn write_s_varint_field<T>(&mut self, tag: u64, val: T)
     where
         T: Into<i64>,
@@ -299,6 +466,7 @@ impl Protobuf {
         self.write_s_varint(val.into());
     }
 
+    /// write a vector packed variable sized number, bool, or enum into to the buffer.
     pub fn write_packed_varint<T>(&mut self, tag: u64, val: &[T])
     where
         T: BitCast + Copy,
@@ -313,6 +481,7 @@ impl Protobuf {
         buf.append(&mut bytes.to_owned());
     }
 
+    /// write a vector packed signed variable sized number into to the buffer.
     pub fn write_packed_s_varint<T>(&mut self, tag: u64, val: &[T])
     where
         T: Into<i64> + Copy,
@@ -327,7 +496,11 @@ impl Protobuf {
         buf.append(&mut bytes.to_owned());
     }
 
-    /// Supports only 32 and 64 bit types
+    /// write a fixed sized number into to the buffer. No compression is done.
+    /// Supports 32 and 64 bit numbers.
+    ///
+    /// # Panics
+    /// Panics if the size of the type is not 32 or 64 bits.
     pub fn write_fixed_field<T>(&mut self, tag: u64, val: T)
     where
         T: BitCast + Copy,
@@ -341,18 +514,23 @@ impl Protobuf {
         self.write_fixed(val);
     }
 
+    /// write a string into to the buffer.
     pub fn write_string_field(&mut self, tag: u64, val: &str) {
         self.write_length_varint(tag, val.len());
         let mut buf = self.buf.borrow_mut();
         buf.extend_from_slice(val.as_bytes());
     }
 
+    /// write a byte array into to the buffer.
     pub fn write_bytes_field(&mut self, tag: u64, val: &[u8]) {
         self.write_length_varint(tag, val.len());
         let mut buf = self.buf.borrow_mut();
         buf.extend_from_slice(val)
     }
 
+    /// write a message into to the buffer.
+    /// The message must implement the ProtoWrite trait.
+    /// This is usually reserved for structs and enums.
     pub fn write_message<T: ProtoWrite>(&mut self, tag: u64, t: &T) {
         let mut pbf = Protobuf::new();
         t.write(&mut pbf);
@@ -368,10 +546,12 @@ impl Protobuf {
     }
 }
 
+/// convert a signed integer to an unsigned integer using zigzag encoding.
 pub fn zigzag(val: i64) -> u64 {
     ((val << 1) ^ (val >> 63)) as u64
 }
 
+/// convert an unsigned integer to a signed integer using zigzag encoding.
 pub fn zagzig(val: u64) -> i64 {
     (val >> 1) as i64 ^ -((val & 1) as i64)
 }
@@ -688,13 +868,6 @@ mod tests {
     }
 
     #[test]
-    #[should_panic(expected = "Invalid fixed type")]
-    fn test_fixed_panic() {
-        let mut pb = Protobuf::new();
-        pb.write_fixed_field(1, 1_u8);
-    }
-
-    #[test]
     fn test_fixed() {
         let mut pb = Protobuf::new();
         pb.write_fixed_field(1, 5_u32);
@@ -755,6 +928,13 @@ mod tests {
             }
         );
         assert_eq!(pb.read_fixed::<f64>(), 5.5);
+    }
+
+    #[test]
+    #[should_panic(expected = "Invalid fixed type")]
+    fn test_fixed_panic() {
+        let mut pb = Protobuf::new();
+        pb.write_fixed_field(1, 1_u8);
     }
 
     #[test]

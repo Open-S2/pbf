@@ -1,8 +1,11 @@
 use core::mem::transmute;
 
-// Setup all necessary bit casing for the varint
+/// All encoding and decoding is done via u64.
+/// So all types must implement this trait to be able to be encoded and decoded.
 pub trait BitCast: Sized {
+    /// Convert the value to a u64.
     fn to_u64(&self) -> u64;
+    /// Convert a u64 to the value.
     fn from_u64(value: u64) -> Self;
 }
 impl BitCast for u64 {
