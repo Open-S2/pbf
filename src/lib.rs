@@ -70,8 +70,10 @@ impl From<Type> for u64 {
 /// The type is used to determine how to encode and decode the field.
 #[derive(Debug, PartialEq)]
 pub struct Field {
-    tag: u64,
-    r#type: Type,
+    /// The tag is used to track the data type in the message for decoding.
+    pub tag: u64,
+    /// The type is used to determine how to encode and decode the field.
+    pub r#type: Type,
 }
 
 /// The `ProtoRead` trait is used to read a protobuf **message**.
