@@ -34,6 +34,8 @@ pub enum Type {
     /// Fixed 32-bit numbers will take up exactly 64 bits of space
     /// They may be an u32, i32, or f32
     Fixed32 = 5,
+    /// This is a null type
+    None = 7,
 }
 impl From<u8> for Type {
     /// Convert a u8 to a Type
@@ -45,6 +47,7 @@ impl From<u8> for Type {
             1 => Type::Fixed64,
             2 => Type::Bytes,
             5 => Type::Fixed32,
+            7 => Type::None,
             _ => panic!("Invalid value for Type"),
         }
     }
@@ -56,6 +59,7 @@ impl From<Type> for u64 {
             Type::Fixed64 => 1,
             Type::Bytes => 2,
             Type::Fixed32 => 5,
+            Type::None => 7,
         }
     }
 }
@@ -240,10 +244,15 @@ impl Protobuf {
         self.pos = pos;
     }
 
+    /// get the length of the bufer
+    pub fn len(&self) -> usize {
+        self.buf.borrow().len()
+    }
+
     // === READING =================================================================
 
     fn decode_varint(&mut self) -> u64 {
-        if self.pos >= self.buf.borrow().len() {
+        if self.pos >= self.len() {
             unreachable!();
         }
 
@@ -277,6 +286,7 @@ impl Protobuf {
             Type::Fixed64 => self.pos += 8,
             Type::Fixed32 => self.pos += 4,
             Type::Bytes => self.pos += self.decode_varint() as usize,
+            Type::None => { /* Do nothing */ }
         };
     }
 
@@ -285,7 +295,7 @@ impl Protobuf {
         let val = self.decode_varint();
         Field {
             tag: val >> 3,
-            r#type: Type::from(val as u8 & 0x7),
+            r#type: Type::from((val & 0x7) as u8),
         }
     }
 
@@ -394,7 +404,8 @@ impl Protobuf {
 
     // === WRITING =================================================================
 
-    fn write_varint(&mut self, val: u64) {
+    /// Write a u64 to the buffer.
+    pub fn write_varint(&mut self, val: u64) {
         let mut buf = self.buf.borrow_mut();
         let mut val = val;
 
@@ -505,13 +516,21 @@ impl Protobuf {
     where
         T: BitCast + Copy,
     {
-        let r#type = match size_of::<T>() {
+        let type_ = match size_of::<T>() {
             4 => Type::Fixed32,
             8 => Type::Fixed64,
             _ => panic!("Invalid fixed type"),
         };
-        self.write_field(tag, r#type);
+
+        self.write_field(tag, type_);
         self.write_fixed(val);
+    }
+
+    /// write only the string to the buffer
+    pub fn write_string(&mut self, val: &str) {
+        self.write_varint(val.len() as u64);
+        let mut buf = self.buf.borrow_mut();
+        buf.extend_from_slice(val.as_bytes());
     }
 
     /// write a string into to the buffer.
@@ -551,7 +570,7 @@ pub fn zigzag(val: i64) -> u64 {
     ((val << 1) ^ (val >> 63)) as u64
 }
 
-/// convert an unsigned integer to a signed integer using zigzag encoding.
+/// convert an unsigned integer to a signed integer using zigzag decoding.
 pub fn zagzig(val: u64) -> i64 {
     (val >> 1) as i64 ^ -((val & 1) as i64)
 }
@@ -992,6 +1011,31 @@ mod tests {
     }
 
     #[test]
+    fn test_write_field() {
+        let mut pb = Protobuf::new();
+        pb.write_field(1, Type::Varint);
+        pb.write_field(2, Type::None);
+
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+
+        assert_eq!(
+            pb.read_field(),
+            Field {
+                tag: 1,
+                r#type: Type::Varint,
+            }
+        );
+        assert_eq!(
+            pb.read_field(),
+            Field {
+                tag: 2,
+                r#type: Type::None,
+            }
+        );
+    }
+
+    #[test]
     fn test_set_pos() {
         let mut pb = Protobuf::new();
         pb.write_varint_field(1, 5);
@@ -1027,7 +1071,8 @@ mod tests {
         pb.write_fixed_field(2, -5_i32);
         pb.write_fixed_field(3, 5.5_f64);
         pb.write_packed_varint::<u16>(4, &[1, 2, 3, 4, 5]);
-        pb.write_varint_field(5, false);
+        pb.write_field(5, Type::None);
+        pb.write_varint_field(6, false);
 
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
@@ -1040,14 +1085,15 @@ mod tests {
         pb.skip(field.r#type); // skip 3 Type::Fixed64
         field = pb.read_field();
         pb.skip(field.r#type); // skip 4 Type::Bytes
+        field = pb.read_field();
+        pb.skip(field.r#type); // skip 5 Type::None
         assert_eq!(
             pb.read_field(),
             Field {
-                tag: 5,
+                tag: 6,
                 r#type: Type::Varint
             }
         );
-        assert!(!pb.read_varint::<bool>());
     }
 
     #[test]
@@ -1088,7 +1134,7 @@ mod tests {
 
     #[test]
     fn test_message() {
-        #[derive(Default)]
+        #[derive(Debug, PartialEq, Default)]
         struct TestMessage {
             a: i32,
             b: String,
@@ -1106,7 +1152,6 @@ mod tests {
         }
         impl ProtoRead for TestMessage {
             fn read(&mut self, tag: u64, pb: &mut Protobuf) {
-                println!("tag: {}", tag);
                 match tag {
                     1 => self.a = pb.read_varint::<i32>(),
                     2 => self.b = pb.read_string(),
@@ -1136,5 +1181,67 @@ mod tests {
         pb.read_message(&mut msg);
         assert_eq!(msg.a, 1);
         assert_eq!(msg.b, "hello");
+    }
+
+    #[test]
+    fn test_message_with_skip() {
+        #[derive(Debug, PartialEq, Default)]
+        struct TestMessage {
+            a: i32,
+            b: String,
+        }
+        impl TestMessage {
+            fn new(a: i32, b: &str) -> Self {
+                TestMessage { a, b: b.to_owned() }
+            }
+        }
+        impl ProtoWrite for TestMessage {
+            fn write(&self, pb: &mut Protobuf) {
+                pb.write_varint_field::<u64>(1, self.a as u64);
+                pb.write_string_field(2, &self.b);
+            }
+        }
+        impl ProtoRead for TestMessage {
+            fn read(&mut self, tag: u64, pb: &mut Protobuf) {
+                match tag {
+                    2 => self.b = pb.read_string(),
+                    // we are allowing skips
+                    _ => {}
+                }
+            }
+        }
+
+        let mut pb = Protobuf::new();
+        let msg = TestMessage::new(1, "hello");
+        pb.write_message(1, &msg);
+
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+
+        // first read in the field for the message
+        let field = pb.read_field();
+        assert_eq!(
+            field,
+            Field {
+                tag: 1,
+                r#type: Type::Bytes
+            }
+        );
+
+        let mut msg = TestMessage::default();
+        pb.read_message(&mut msg);
+        assert_eq!(msg.a, 0);
+        assert_eq!(msg.b, "hello");
+    }
+
+    #[test]
+    fn unicode_string() {
+        let mut pb = Protobuf::new();
+        pb.write_string("你好");
+
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+
+        assert_eq!(pb.read_string(), "你好");
     }
 }
