@@ -253,7 +253,8 @@ impl Protobuf {
 
     // === READING =================================================================
 
-    fn decode_varint(&mut self) -> u64 {
+    /// Decode a varint from the buffer at the current position.
+    pub fn decode_varint(&mut self) -> u64 {
         if self.pos >= self.len() {
             unreachable!();
         }
@@ -418,7 +419,8 @@ impl Protobuf {
         buf.push(val as u8);
     }
 
-    fn write_varint_to_buffer(buf: &mut Vec<u8>, val: u64) {
+    /// Use this if you want to use the varint encoding in your own buffer.
+    pub fn write_varint_to_buffer(buf: &mut Vec<u8>, val: u64) {
         let mut val = val;
 
         while val > 0x80 {
@@ -428,11 +430,13 @@ impl Protobuf {
         buf.push(val as u8);
     }
 
-    fn write_s_varint(&mut self, val: i64) {
+    /// Write an i64 to the buffer.
+    pub fn write_s_varint(&mut self, val: i64) {
         self.write_varint(zigzag(val));
     }
 
-    fn write_fixed<T>(&mut self, val: T)
+    /// Write a fixed size value to the buffer. This will not compress the value.
+    pub fn write_fixed<T>(&mut self, val: T)
     where
         T: BitCast,
     {
@@ -451,12 +455,14 @@ impl Protobuf {
         }
     }
 
-    fn write_field(&mut self, tag: u64, r#type: Type) {
+    /// write a field of "tag" and "type" to the buffer.
+    pub fn write_field(&mut self, tag: u64, r#type: Type) {
         let b: u64 = (tag << 3) | Into::<u64>::into(r#type);
         self.write_varint(b);
     }
 
-    fn write_length_varint(&mut self, tag: u64, val: usize) {
+    /// write a tag with the size of the buffer to be appended to the internal buffer.
+    pub fn write_length_varint(&mut self, tag: u64, val: usize) {
         self.write_field(tag, Type::Bytes);
         self.write_varint(val as u64);
     }
