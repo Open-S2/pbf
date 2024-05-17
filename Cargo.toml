@@ -11,13 +11,12 @@ readme = "README.md"
 categories = ["encoding", "wasm", "embedded", "no-std"]
 keywords = ["pbf", "protobuffers", "minimal", "low-cost-code"]
 license = "MIT"
+# Include only specific files and directories
+include = ["src/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 
 [lib]
 name = "pbf"
 bench = true
-
-# Include only specific files and directories
-include = ["src/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
