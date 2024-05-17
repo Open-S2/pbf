@@ -64,7 +64,6 @@ impl From<Type> for u64 {
     }
 }
 
-/// The `Field` struct represents a field in a protobuf message.
 /// The `Field` struct contains a tag and a type.
 /// The tag is used to track the data type in the message for decoding.
 /// The type is used to determine how to encode and decode the field.
@@ -251,6 +250,11 @@ impl Protobuf {
         self.buf.borrow().len()
     }
 
+    /// check if the buffer is empty
+    pub fn is_empty(&self) -> bool {
+        self.len() == 0
+    }
+
     // === READING =================================================================
 
     /// Decode a varint from the buffer at the current position.
@@ -390,10 +394,11 @@ impl Protobuf {
         res
     }
 
-    /// Read in an entire message from the buffer.
-    /// This is usually used to read in a struct or enum.
-    pub fn read_message<T: ProtoRead>(&mut self, t: &mut T) {
-        let end = self.decode_varint() as usize + self.pos;
+    /// Read a message from the buffer. This is the alternative to `read_message`
+    /// which does the same thing but you may already know the size of the message.
+    /// The other case is top level data may have fields but no message length.
+    pub fn read_fields<T: ProtoRead>(&mut self, t: &mut T, end: Option<usize>) {
+        let end = end.unwrap_or(self.len());
 
         while self.pos < end {
             let field = self.read_field();
@@ -403,6 +408,14 @@ impl Protobuf {
                 self.skip(field.r#type);
             }
         }
+    }
+
+    /// Read in an entire message from the buffer.
+    /// This is usually used to read in a struct or enum.
+    pub fn read_message<T: ProtoRead>(&mut self, t: &mut T) {
+        let end = self.decode_varint() as usize + self.pos;
+
+        self.read_fields(t, Some(end));
     }
 
     // === WRITING =================================================================
@@ -1211,11 +1224,7 @@ mod tests {
         }
         impl ProtoRead for TestMessage {
             fn read(&mut self, tag: u64, pb: &mut Protobuf) {
-                match tag {
-                    2 => self.b = pb.read_string(),
-                    // we are allowing skips
-                    _ => {}
-                }
+                if tag == 2 { self.b = pb.read_string() }
             }
         }
 
