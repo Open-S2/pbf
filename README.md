@@ -1,4 +1,7 @@
-# pbf-rs
+# pbf-rs [![docs-rust][docs-rust-image]][docs-rust-url]
+
+[docs-rust-image]: https://img.shields.io/badge/docs-rust-yellow.svg
+[docs-rust-url]: https://docs.rs/pbf
 
 The `pbf` Rust crate provides functionalities to read and write Protocol Buffers (protobuf) messages. This crate is a 0 dependency package that uses `no_std` and is intended to be used in embedded systems and WASM applications. The crate is designed to be small and efficient, with the cost of some features and flexibility. It is up to the user to create the necessary data structures and implement the `ProtoRead` and `ProtoWrite` traits in order to use it effectively.
 
