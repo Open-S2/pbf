@@ -1,6 +1,6 @@
 [package]
 name = "pbf"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Mininmal protobuffer module; Build your own glue."
@@ -24,10 +24,6 @@ bench = true
 
 [dev-dependencies]
 # tarpaulin = "*"
-
-[features]
-default = ["std"]
-std = []
 
 [profile.bench]
 opt-level = 3

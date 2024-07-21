@@ -245,6 +245,11 @@ impl Protobuf {
         self.pos = pos;
     }
 
+    /// get the current position
+    pub fn get_pos(&self) -> usize {
+        self.pos
+    }
+
     /// get the length of the bufer
     pub fn len(&self) -> usize {
         self.buf.borrow().len()
@@ -1260,5 +1265,43 @@ mod tests {
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
         assert_eq!(pb.read_string(), "你好");
+    }
+
+    #[test]
+    fn write_float() {
+        let mut pb = Protobuf::new();
+        pb.write_varint(5.5_f32.to_u64());
+
+        let bytes = pb.take();
+        assert_eq!(bytes, vec![128, 128, 192, 133, 4]);
+
+        let mut pb2 = Protobuf::new();
+        pb2.write_varint(30994030.23423423_f64.to_u64());
+
+        let bytes2 = pb2.take();
+        assert_eq!(bytes2, vec![228, 216, 253, 157, 238, 220, 227, 190, 65]);
+    }
+
+    #[test]
+    fn is_empty() {
+        let mut pb = Protobuf::new();
+        assert!(pb.is_empty());
+        pb.write_varint(5.5_f32.to_u64());
+        assert!(!pb.is_empty());
+    }
+
+    #[test]
+    fn get_pos() {
+        let mut pb = Protobuf::new();
+        pb.write_varint(5.5_f32.to_u64());
+
+        let bytes = pb.take();
+        assert_eq!(bytes, vec![128, 128, 192, 133, 4]);
+
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+        let data = pb.read_varint::<f32>();
+        assert_eq!(data, 5.5_f32);
+        
+        assert_eq!(pb.get_pos(), 5);
     }
 }

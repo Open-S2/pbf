@@ -100,3 +100,11 @@ impl BitCast for bool {
         value != 0
     }
 }
+impl BitCast for usize {
+    fn to_u64(&self) -> u64 {
+        *self as u64
+    }
+    fn from_u64(value: u64) -> Self {
+        value as usize
+    }
+}
