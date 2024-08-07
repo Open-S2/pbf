@@ -426,11 +426,11 @@ impl Protobuf {
     // === WRITING =================================================================
 
     /// Write a u64 to the buffer.
-    pub fn write_varint(&mut self, val: u64) {
+    pub fn write_varint<T: BitCast>(&mut self, val: T) {
         let mut buf = self.buf.borrow_mut();
-        let mut val = val;
+        let mut val = val.to_u64();
 
-        while val > 0x80 {
+        while val >= 0x80 {
             buf.push((val & 0x7f) as u8 | 0x80);
             val >>= 7;
         }
@@ -482,7 +482,7 @@ impl Protobuf {
     /// write a tag with the size of the buffer to be appended to the internal buffer.
     pub fn write_length_varint(&mut self, tag: u64, val: usize) {
         self.write_field(tag, Type::Bytes);
-        self.write_varint(val as u64);
+        self.write_varint(val);
     }
 
     /// write a variable sized number, bool, or enum into to the buffer.
@@ -491,7 +491,7 @@ impl Protobuf {
         T: BitCast,
     {
         self.write_field(tag, Type::Varint);
-        self.write_varint(val.to_u64());
+        self.write_varint(val);
     }
 
     /// write a signed variable sized number into to the buffer.
@@ -554,7 +554,7 @@ impl Protobuf {
 
     /// write only the string to the buffer
     pub fn write_string(&mut self, val: &str) {
-        self.write_varint(val.len() as u64);
+        self.write_varint(val.len());
         let mut buf = self.buf.borrow_mut();
         buf.extend_from_slice(val.as_bytes());
     }
@@ -641,7 +641,7 @@ mod tests {
         let mut pb = Protobuf::new();
         pb.write_varint(1);
         pb.write_varint(300);
-        pb.write_varint(0x7fffffffffffffff);
+        pb.write_varint(0x7fffffffffffffff_u64);
 
         let bytes = pb.take();
         assert_eq!(
@@ -1270,13 +1270,13 @@ mod tests {
     #[test]
     fn write_float() {
         let mut pb = Protobuf::new();
-        pb.write_varint(5.5_f32.to_u64());
+        pb.write_varint(5.5_f32);
 
         let bytes = pb.take();
         assert_eq!(bytes, vec![128, 128, 192, 133, 4]);
 
         let mut pb2 = Protobuf::new();
-        pb2.write_varint(30994030.23423423_f64.to_u64());
+        pb2.write_varint(30994030.23423423_f64);
 
         let bytes2 = pb2.take();
         assert_eq!(bytes2, vec![228, 216, 253, 157, 238, 220, 227, 190, 65]);
@@ -1286,14 +1286,14 @@ mod tests {
     fn is_empty() {
         let mut pb = Protobuf::new();
         assert!(pb.is_empty());
-        pb.write_varint(5.5_f32.to_u64());
+        pb.write_varint(5.5_f32);
         assert!(!pb.is_empty());
     }
 
     #[test]
     fn get_pos() {
         let mut pb = Protobuf::new();
-        pb.write_varint(5.5_f32.to_u64());
+        pb.write_varint(5.5_f32);
 
         let bytes = pb.take();
         assert_eq!(bytes, vec![128, 128, 192, 133, 4]);
