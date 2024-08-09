@@ -223,10 +223,15 @@ pub trait ProtoWrite {
 /// let mut buf = vec![0x0A, 0x03, 0x74, 0x65, 0x73, 0x74];
 /// let mut pbf = Protobuf::from_input(RefCell::new(buf));
 /// ```
-#[derive(Default)]
+#[derive(Clone, Debug, Default)]
 pub struct Protobuf {
     buf: RefCell<Vec<u8>>,
     pos: usize,
+}
+impl From<Vec<u8>> for Protobuf {
+    fn from(buf: Vec<u8>) -> Protobuf {
+        Protobuf::from_input(RefCell::new(buf))
+    }
 }
 impl Protobuf {
     /// Create a new Protobuf instance.
@@ -1262,7 +1267,7 @@ mod tests {
         pb.write_string("你好");
 
         let bytes = pb.take();
-        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+        let mut pb = Protobuf::from_input(From::from(bytes));
 
         assert_eq!(pb.read_string(), "你好");
     }
@@ -1298,7 +1303,7 @@ mod tests {
         let bytes = pb.take();
         assert_eq!(bytes, vec![128, 128, 192, 133, 4]);
 
-        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+        let mut pb: Protobuf = bytes.into();
         let data = pb.read_varint::<f32>();
         assert_eq!(data, 5.5_f32);
         
