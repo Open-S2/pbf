@@ -14,7 +14,7 @@ extern crate alloc;
 
 pub use bit_cast::BitCast;
 
-use alloc::{borrow::ToOwned, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
 
 const MAX_VARINT_LENGTH: usize = u64::BITS as usize * 8 / 7 + 1;
@@ -384,8 +384,7 @@ impl Protobuf {
         let end = self.decode_varint() as usize + self.pos;
         let mut res: Vec<T> = Vec::new();
         while self.pos < end {
-            let val = self.decode_varint();
-            res.push(T::from_u64(val));
+            res.push(self.read_varint::<T>());
         }
 
         res
@@ -437,17 +436,6 @@ impl Protobuf {
         let mut val = val.to_u64();
 
         while val >= 0x80 {
-            buf.push((val & 0x7f) as u8 | 0x80);
-            val >>= 7;
-        }
-        buf.push(val as u8);
-    }
-
-    /// Use this if you want to use the varint encoding in your own buffer.
-    pub fn write_varint_to_buffer(buf: &mut Vec<u8>, val: u64) {
-        let mut val = val;
-
-        while val > 0x80 {
             buf.push((val & 0x7f) as u8 | 0x80);
             val >>= 7;
         }
@@ -514,14 +502,13 @@ impl Protobuf {
     where
         T: BitCast + Copy,
     {
-        let mut bytes: Vec<u8> = Vec::new();
+        let mut pbf = Protobuf::new();
+
         for &v in val {
-            Protobuf::write_varint_to_buffer(&mut bytes, v.to_u64());
+            pbf.write_varint::<T>(v);
         }
 
-        self.write_length_varint(tag, bytes.len());
-        let mut buf = self.buf.borrow_mut();
-        buf.append(&mut bytes.to_owned());
+        self.write_bytes_field(tag, &(pbf.take()));
     }
 
     /// write a vector packed signed variable sized number into to the buffer.
@@ -529,14 +516,13 @@ impl Protobuf {
     where
         T: Into<i64> + Copy,
     {
-        let mut bytes: Vec<u8> = Vec::new();
+        let mut pbf = Protobuf::new();
+
         for &v in val {
-            Protobuf::write_varint_to_buffer(&mut bytes, zigzag(v.into()));
+            pbf.write_s_varint(v.into());
         }
 
-        self.write_length_varint(tag, bytes.len());
-        let mut buf = self.buf.borrow_mut();
-        buf.append(&mut bytes.to_owned());
+        self.write_bytes_field(tag, &(pbf.take()));
     }
 
     /// write a fixed sized number into to the buffer. No compression is done.
@@ -611,6 +597,8 @@ extern crate std;
 
 #[cfg(test)]
 mod tests {
+    use std::borrow::ToOwned;
+
     use super::*;
 
     #[test]
@@ -1309,5 +1297,48 @@ mod tests {
         assert_eq!(data, 5.5_f32);
 
         assert_eq!(pb.get_pos(), 5);
+    }
+
+    #[test]
+    fn bug_test() {
+        let mut pb = Protobuf::new();
+        pb.write_bytes_field(1, &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]);
+
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+
+        let _field = pb.read_field();
+        assert_eq!(
+            pb.read_bytes(),
+            &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]
+        );
+    }
+
+    #[test]
+    fn bug_test_packed() {
+        let mut pb = Protobuf::new();
+        let bytes: Vec<u8> = vec![127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22];
+        pb.write_packed_varint::<u8>(1, &bytes);
+
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+
+        let _field = pb.read_field();
+        assert_eq!(
+            pb.read_packed::<u8>(),
+            &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]
+        );
+    }
+
+    #[test]
+    fn test_bug_128() {
+        let mut pb = Protobuf::new();
+        pb.write_varint::<u8>(127);
+        pb.write_varint(55);
+        pb.write_varint(192);
+        let bytes = pb.take();
+        let mut pb = Protobuf::from_input(RefCell::new(bytes));
+        assert_eq!(pb.read_varint::<u8>(), 127);
+        assert_eq!(pb.read_varint::<u8>(), 55);
     }
 }
