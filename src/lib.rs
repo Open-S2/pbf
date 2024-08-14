@@ -12,8 +12,9 @@ pub mod bit_cast;
 
 extern crate alloc;
 
+pub use bit_cast::BitCast;
+
 use alloc::{borrow::ToOwned, string::String, vec::Vec};
-use bit_cast::BitCast;
 use core::{cell::RefCell, mem::size_of};
 
 const MAX_VARINT_LENGTH: usize = u64::BITS as usize * 8 / 7 + 1;
@@ -585,9 +586,7 @@ impl Protobuf {
         let mut pbf = Protobuf::new();
         t.write(&mut pbf);
         let bytes = pbf.take();
-        self.write_length_varint(tag, bytes.len());
-        let mut buf = self.buf.borrow_mut();
-        buf.extend_from_slice(&bytes);
+        self.write_bytes_field(tag, &bytes);
     }
 
     /// When done writing to the buffer, call this function to take ownership
@@ -1234,7 +1233,9 @@ mod tests {
         }
         impl ProtoRead for TestMessage {
             fn read(&mut self, tag: u64, pb: &mut Protobuf) {
-                if tag == 2 { self.b = pb.read_string() }
+                if tag == 2 {
+                    self.b = pb.read_string()
+                }
             }
         }
 
@@ -1306,7 +1307,7 @@ mod tests {
         let mut pb: Protobuf = bytes.into();
         let data = pb.read_varint::<f32>();
         assert_eq!(data, 5.5_f32);
-        
+
         assert_eq!(pb.get_pos(), 5);
     }
 }
