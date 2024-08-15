@@ -11,7 +11,7 @@ Add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-pbf = "0.1"
+pbf = "0.3"
 ```
 
 ## Examples
