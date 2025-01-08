@@ -1,3 +1,16 @@
 target/
 cobertura.xml
+node_modules
+dist
+tsconfig.tsbuildinfo
+tsconfig.build.tsbuildinfo
+tsconfig.test.tsbuildinfo
 .DS_Store
+benchmarks/data/bing/mvt/*.mvt
+tools/fetchBingTiles.ts
+tools/fetchOMT.ts
+vector-tile-spec/1.0.0/README.bak.md
+coverage/
+*.profraw
+experiments/
+docs/

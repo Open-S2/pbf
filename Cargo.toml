@@ -1,6 +1,6 @@
 [package]
 name = "pbf"
-version = "0.3.1"
+version = "0.3.2"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Mininmal protobuffer module; Build your own glue."
@@ -12,10 +12,11 @@ categories = ["encoding", "wasm", "embedded", "no-std"]
 keywords = ["pbf", "protobuffers", "minimal", "low-cost-code"]
 license = "MIT"
 # Include only specific files and directories
-include = ["src/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
+include = ["rust/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
 
 [lib]
 name = "pbf"
+path = "rust/lib.rs"
 bench = true
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html

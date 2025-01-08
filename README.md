@@ -1,13 +1,43 @@
-# pbf-rs [![docs-rust][docs-rust-image]][docs-rust-url]
+# pbf [![docs-rust][docs-rust-image]][docs-rust-url]
 
 [docs-rust-image]: https://img.shields.io/badge/docs-rust-yellow.svg
 [docs-rust-url]: https://docs.rs/pbf
+
+This module implements the [Protocol Buffer Format](https://protobuf.dev/) in a light weight, minimalistic, and efficient way.
 
 The `pbf` Rust crate provides functionalities to read and write Protocol Buffers (protobuf) messages. This crate is a 0 dependency package that uses `no_std` and is intended to be used in embedded systems and WASM applications. The crate is designed to be small and efficient, with the cost of some features and flexibility. It is up to the user to create the necessary data structures and implement the `ProtoRead` and `ProtoWrite` traits in order to use it effectively.
 
 ## Usage
 
-Add the following to your `Cargo.toml`:
+### Typescript
+
+This is a low-level, fast, ultra-lightweight typescript library for decoding and encoding protocol buffers. It was ported from the [pbf](https://github.com/mapbox/pbf) package.
+
+Install the package:
+
+```bash
+# bun
+bun add pbf-ts
+# npm
+npm install pbf-ts
+# pnpm
+pnpm add pbf-ts
+# yarn
+yarn add pbf-ts
+# deno
+deno install pbf-ts
+```
+
+### Rust
+
+Install the package:
+
+```bash
+# cargo
+cargo install pbf
+```
+
+or add the following to your `Cargo.toml`:
 
 ```toml
 [dependencies]

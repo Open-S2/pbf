@@ -1,0 +1,73 @@
+{
+  "name": "pbf-ts",
+  "version": "1.0.0",
+  "description": "A low-level, fast, ultra-lightweight typescript library for decoding and encoding protocol buffers.",
+  "type": "module",
+  "keywords": [
+    "typescript",
+    "protocol-buffers",
+    "encoding",
+    "decoding",
+    "pbf",
+    "protobuf",
+    "library"
+  ],
+  "exports": {
+    ".": "./dist/index.js"
+  },
+  "directories": {
+    "lib": "dist"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "typescript": {
+    "main": "src/index.ts"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "lint+build+test+docs": "bun run lint && bun run build && bun run test && bun run docs",
+    "lint": "eslint src tests",
+    "lint:fix": "bun run lint -- --fix",
+    "prettier": "bunx prettier src tests tools benchmarks --check",
+    "prettier:fix": "bunx prettier -- --write",
+    "format": "bunx prettier:fix && bun run lint:fix",
+    "build": "rm -rf dist && mkdir dist && rm -f -- tsconfig.tsbuildinfo && tsc",
+    "cleanCoverage": "rm -rf coverage && mkdir coverage",
+    "types:bundle": "bun run types:build && node scripts/types.mjs",
+    "prepublishOnly": "bun run lint+build+test+docs",
+    "package-check": "package-check",
+    "test:dev": "bun test --watch --coverage",
+    "test": "FORCE_POLYFILL=true bun test",
+    "test:fast": "FAST_TESTS_ONLY=true bun test",
+    "test:coverage": "bun run test --coverage",
+    "docs": "bunx typedoc"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Open-S2/s2-tools.git"
+  },
+  "author": "Craig OConnor",
+  "license": "See LICENSE file.",
+  "bugs": {
+    "url": "https://github.com/Open-S2/s2-tools/issues"
+  },
+  "homepage": "https://github.com/Open-S2/s2-tools#readme",
+  "devDependencies": {
+    "@skypack/package-check": "^0.2.2",
+    "@types/bun": "^1.1.15",
+    "@types/node": "^22.10.5",
+    "coveralls": "^3.1.1",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-plugin-jsdoc": "^50.6.1",
+    "eslint-plugin-prettier": "^5.2.1",
+    "eslint-plugin-tsdoc": "^0.4.0",
+    "prettier": "^3.4.2",
+    "typedoc": "^0.27.6",
+    "typedoc-plugin-coverage": "^3.4.1",
+    "typescript": "^5.7.2",
+    "typescript-eslint": "^8.19.1"
+  }
+}
