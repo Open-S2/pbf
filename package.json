@@ -1,6 +1,6 @@
 {
   "name": "pbf-ts",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A low-level, fast, ultra-lightweight typescript library for decoding and encoding protocol buffers.",
   "type": "module",
   "keywords": [
