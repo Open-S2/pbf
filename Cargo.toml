@@ -12,7 +12,19 @@ categories = ["encoding", "wasm", "embedded", "no-std"]
 keywords = ["pbf", "protobuffers", "minimal", "low-cost-code"]
 license = "MIT"
 # Include only specific files and directories
-include = ["rust/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
+# include = ["rust/**", "Cargo.toml", "Cargo.lock", "README.md", "LICENSE"]
+exclude = [
+    "/assets",
+    "/coverage",
+    "/benchmarks",
+    "/dist",
+    "/node_modules",
+    "/target",
+    "/docs",
+    "/tests",
+    "/tools",
+    "/src",
+]
 
 [lib]
 name = "pbf"
