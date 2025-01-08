@@ -10,6 +10,7 @@
 //!
 //! ```rust
 //! use pbf::{ProtoRead, ProtoWrite, Protobuf, Field, Type};
+//! use core::cell::RefCell;
 //!
 //! #[derive(Default)]
 //! struct TestMessage {
@@ -366,10 +367,7 @@ impl Protobuf {
     /// Read a field from the buffer.
     pub fn read_field(&mut self) -> Field {
         let val = self.decode_varint();
-        Field {
-            tag: val >> 3,
-            r#type: Type::from((val & 0x7) as u8),
-        }
+        Field { tag: val >> 3, r#type: Type::from((val & 0x7) as u8) }
     }
 
     /// Read in bytes from the buffer.
@@ -691,10 +689,7 @@ mod tests {
         pb.write_varint(0x7fffffffffffffff_u64);
 
         let bytes = pb.take();
-        assert_eq!(
-            bytes,
-            &[1, 172, 2, 255, 255, 255, 255, 255, 255, 255, 255, 127]
-        );
+        assert_eq!(bytes, &[1, 172, 2, 255, 255, 255, 255, 255, 255, 255, 255, 127]);
 
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
         assert_eq!(pb.read_varint::<u64>(), 1);
@@ -752,129 +747,51 @@ mod tests {
 
         // unsigned
         // tag 0
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 0,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 0, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u8>(), 5);
         // tag 1
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u16>(), 1);
         // tag 2
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u32>(), 300);
         // tag 3
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 3,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 3, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u64>(), 0x7fffffffffffffff);
 
         // signed
         // tag 4
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 4,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 4, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<i8>(), -5);
         // tag 5
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 5,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 5, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<i16>(), -1);
         // tag 6
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 6,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 6, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<i32>(), -300);
         // tag 7
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 7,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 7, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<i64>(), -94949494949);
 
         // bool
         // tag 8
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 8,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 8, r#type: Type::Varint });
         assert!(pb.read_varint::<bool>());
         // tag 9
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 9,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 9, r#type: Type::Varint });
         assert!(!pb.read_varint::<bool>());
 
         // enum
         // tag 10
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 10,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 10, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<TestEnum>(), TestEnum::B);
 
         // float
         // tag 11
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 11,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 11, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<f32>(), std::f32::consts::PI);
         // tag 12
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 12,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 12, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<f64>(), -std::f64::consts::PI);
     }
 
@@ -893,69 +810,21 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i8>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i16>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 3,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 3, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i32>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 4,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 4, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i64>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 5,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 5, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i8>(), -5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 6,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 6, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i16>(), -5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 7,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 7, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i32>(), -5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 8,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 8, r#type: Type::Varint });
         assert_eq!(pb.read_s_varint::<i64>(), -5);
     }
 
@@ -972,53 +841,17 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Fixed32
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Fixed32 });
         assert_eq!(pb.read_fixed::<u32>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Fixed32
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Fixed32 });
         assert_eq!(pb.read_fixed::<i32>(), -5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 3,
-                r#type: Type::Fixed32
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 3, r#type: Type::Fixed32 });
         assert_eq!(pb.read_fixed::<f32>(), 5.5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 4,
-                r#type: Type::Fixed64
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 4, r#type: Type::Fixed64 });
         assert_eq!(pb.read_fixed::<u64>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 5,
-                r#type: Type::Fixed64
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 5, r#type: Type::Fixed64 });
         assert_eq!(pb.read_fixed::<i64>(), -5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 6,
-                r#type: Type::Fixed64
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 6, r#type: Type::Fixed64 });
         assert_eq!(pb.read_fixed::<f64>(), 5.5);
     }
 
@@ -1038,21 +871,9 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Bytes });
         assert_eq!(pb.read_string(), "hello");
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Bytes });
         assert_eq!(pb.read_string(), "world");
     }
 
@@ -1065,21 +886,9 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Bytes });
         assert_eq!(pb.read_bytes(), &[1, 2, 3]);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Bytes });
         assert_eq!(pb.read_bytes(), &[4, 5, 6]);
     }
 
@@ -1092,20 +901,8 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Varint,
-            }
-        );
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::None,
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Varint });
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::None });
     }
 
     #[test]
@@ -1119,21 +916,9 @@ mod tests {
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
         pb.set_pos(2);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u8>(), 5);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 3,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 3, r#type: Type::Varint });
         assert_eq!(pb.read_varint::<u8>(), 5);
     }
 
@@ -1160,13 +945,7 @@ mod tests {
         pb.skip(field.r#type); // skip 4 Type::Bytes
         field = pb.read_field();
         pb.skip(field.r#type); // skip 5 Type::None
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 6,
-                r#type: Type::Varint
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 6, r#type: Type::Varint });
     }
 
     #[test]
@@ -1179,29 +958,11 @@ mod tests {
         let bytes = pb.take();
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 1,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 1, r#type: Type::Bytes });
         assert_eq!(pb.read_packed::<u16>(), vec![1, 2, 3]);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 2,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 2, r#type: Type::Bytes });
         assert_eq!(pb.read_packed::<f32>(), vec![4.4, 5.5, 6.6]);
-        assert_eq!(
-            pb.read_field(),
-            Field {
-                tag: 3,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(pb.read_field(), Field { tag: 3, r#type: Type::Bytes });
         assert_eq!(pb.read_s_packed::<i32>(), vec![-1, -2, -3]);
     }
 
@@ -1242,13 +1003,7 @@ mod tests {
 
         // first read in the field for the message
         let field = pb.read_field();
-        assert_eq!(
-            field,
-            Field {
-                tag: 1,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(field, Field { tag: 1, r#type: Type::Bytes });
 
         let mut msg = TestMessage::default();
         pb.read_message(&mut msg);
@@ -1291,13 +1046,7 @@ mod tests {
 
         // first read in the field for the message
         let field = pb.read_field();
-        assert_eq!(
-            field,
-            Field {
-                tag: 1,
-                r#type: Type::Bytes
-            }
-        );
+        assert_eq!(field, Field { tag: 1, r#type: Type::Bytes });
 
         let mut msg = TestMessage::default();
         pb.read_message(&mut msg);
@@ -1363,10 +1112,7 @@ mod tests {
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
         let _field = pb.read_field();
-        assert_eq!(
-            pb.read_bytes(),
-            &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]
-        );
+        assert_eq!(pb.read_bytes(), &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]);
     }
 
     #[test]
@@ -1379,10 +1125,7 @@ mod tests {
         let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
         let _field = pb.read_field();
-        assert_eq!(
-            pb.read_packed::<u8>(),
-            &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]
-        );
+        assert_eq!(pb.read_packed::<u8>(), &[127, 55, 192, 128, 0, 0, 128, 182, 11, 129, 108, 22]);
     }
 
     #[test]

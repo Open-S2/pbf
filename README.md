@@ -12,8 +12,8 @@
   <a href="https://crates.io/crates/pbf">
     <img src="https://img.shields.io/crates/v/pbf.svg?logo=rust&logoColor=white" alt="crate">
   </a>
-  <a href="https://bundlejs.com/?q=pbf&treeshake=%5B%7B+VectorTile+%7D%5D">
-    <img src="https://img.shields.io/bundlejs/size/pbf?exports=VectorTile" alt="bundle">
+  <a href="https://bundlejs.com/?q=pbf-ts&treeshake=%5B*%5D">
+    <img src="https://img.shields.io/bundlejs/size/pbf-ts?exports=*" alt="bundle">
   </a>
   <a href="https://www.npmjs.com/package/pbf-ts">
     <img src="https://img.shields.io/npm/dm/pbf-ts.svg" alt="downloads">
