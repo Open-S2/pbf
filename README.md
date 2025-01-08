@@ -13,7 +13,7 @@
     <img src="https://img.shields.io/crates/v/pbf.svg?logo=rust&logoColor=white" alt="crate">
   </a>
   <a href="https://bundlejs.com/?q=pbf-ts&treeshake=%5B*%5D">
-    <img src="https://img.shields.io/bundlejs/size/pbf-ts?exports=*" alt="bundle">
+    <img src="https://deno.bundlejs.com/badge?q=pbf-ts&treeshake=[*]" alt="bundle">
   </a>
   <a href="https://www.npmjs.com/package/pbf-ts">
     <img src="https://img.shields.io/npm/dm/pbf-ts.svg" alt="downloads">
