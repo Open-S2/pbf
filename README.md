@@ -1,7 +1,38 @@
-# pbf [![docs-rust][docs-rust-image]][docs-rust-url]
+<h1 style="text-align: center;">
+<div align="center">pbf</div>
+</h1>
 
-[docs-rust-image]: https://img.shields.io/badge/docs-rust-yellow.svg
-[docs-rust-url]: https://docs.rs/pbf
+<p align="center">
+  <a href="https://img.shields.io/github/actions/workflow/status/Open-S2/pbf/test.yml?logo=github">
+    <img src="https://img.shields.io/github/actions/workflow/status/Open-S2/pbf/test.yml?logo=github" alt="GitHub Actions Workflow Status">
+  </a>
+  <a href="https://npmjs.org/package/pbf-ts">
+    <img src="https://img.shields.io/npm/v/pbf-ts.svg?logo=npm&logoColor=white" alt="npm">
+  </a>
+  <a href="https://crates.io/crates/pbf">
+    <img src="https://img.shields.io/crates/v/pbf.svg?logo=rust&logoColor=white" alt="crate">
+  </a>
+  <a href="https://bundlejs.com/?q=pbf&treeshake=%5B%7B+VectorTile+%7D%5D">
+    <img src="https://img.shields.io/bundlejs/size/pbf?exports=VectorTile" alt="bundle">
+  </a>
+  <a href="https://www.npmjs.com/package/pbf-ts">
+    <img src="https://img.shields.io/npm/dm/pbf-ts.svg" alt="downloads">
+  </a>
+  <a href="https://open-s2.github.io/pbf/">
+    <img src="https://img.shields.io/badge/docs-typescript-yellow.svg" alt="docs-ts">
+  </a>
+  <a href="https://docs.rs/pbf">
+    <img src="https://img.shields.io/badge/docs-rust-yellow.svg" alt="docs-rust">
+  </a>
+  <a href="https://coveralls.io/github/Open-S2/pbf?branch=master">
+    <img src="https://coveralls.io/repos/github/Open-S2/pbf/badge.svg?branch=master" alt="code-coverage">
+  </a>
+  <a href="https://discord.opens2.com">
+    <img src="https://img.shields.io/discord/953563031701426206?logo=discord&logoColor=white" alt="Discord">
+  </a>
+</p>
+
+## About
 
 This module implements the [Protocol Buffer Format](https://protobuf.dev/) in a light weight, minimalistic, and efficient way.
 
