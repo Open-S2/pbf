@@ -632,10 +632,11 @@ export class Pbf {
 
   /**
    * Write a byte array
-   * @param buf - a Buffer to write. Will write the length of the buffer first.
+   * @param inBuf - a Buffer to write. Will write the length of the buffer first.
    * After that, the buffer will be written byte by byte.
    */
-  writeBytes(buf: Buffer): void {
+  writeBytes(inBuf: Buffer | Uint8Array | ArrayBuffer): void {
+    const buf = ArrayBuffer.isView(inBuf) ? inBuf : new Uint8Array(inBuf);
     const len = buf.length;
     this.writeVarint(len);
     this.realloc(len);
@@ -767,7 +768,7 @@ export class Pbf {
    * @param tag - the tag to write to associate with the value.
    * @param buffer - the buffer of bytes to write.
    */
-  writeBytesField(tag: number, buffer: Buffer): void {
+  writeBytesField(tag: number, buffer: Buffer | Uint8Array | ArrayBuffer): void {
     this.writeTag(tag, Pbf.Bytes);
     this.writeBytes(buffer);
   }
