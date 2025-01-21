@@ -1,14 +1,11 @@
 const SHIFT_LEFT_32 = 4294967296; // (1 << 16) * (1 << 16);
 const SHIFT_RIGHT_32 = 2.3283064365386963e-10; // 1 / SHIFT_LEFT_32;
-// Threshold chosen based on both benchmarking and knowledge about browser string
-// data structures (which currently switch structure types at 12 bytes or more)
-const TEXT_DECODER_MIN_LENGTH = 12;
 
 /**
  * User defined function to read in fields from a Pbf instance into input.
  * @template U - the input type
  */
-export type ReadFieldFunction<U> = (tag: number, input: U, pbf: Pbf) => void;
+export type ReadFieldFunction<U> = (tag: number, input: U, pbf: Pbf & PbfReader) => void;
 
 /**
  * A tag is a pair of a number and a type.
@@ -20,31 +17,8 @@ export interface Tag {
   type: number;
 }
 
-/**
- * # Protobuffer
- *
- * ## Description
- * Create a new PBF instance and either read or write to it.
- * Follows the early Protobuf spec supporting various types of encoding
- * including messages (which are usually representative of class objects).
- *
- * ## Usage
- *
- * ### Reading:
- * ```ts
- * const data = fs.readFileSync(path);
- * const pbf = new Pbf(data);
- * ```
- *
- * ### Writing:
- * ```ts
- * const pbf = new Pbf();
- * pbf.writeVarintField(1, 1);
- * // ...
- * const result = pbf.commit();
- * ```
- */
-export class Pbf {
+/** Base class for the Protobuf spec */
+export class BasePbf {
   buf: Uint8Array;
   dataView: DataView;
   pos: number;
@@ -78,9 +52,26 @@ export class Pbf {
     this.type = 0;
     this.length = 0;
   }
+}
 
-  // === READING =================================================================
-
+/**
+ * # Protobuffer Reader
+ *
+ * ## Description
+ * Create a new PBF instance read to it.
+ * Follows the early Protobuf spec supporting various types of encoding
+ * including messages (which are usually representative of class objects).
+ *
+ * ## Usage
+ *
+ * ### Reading:
+ * ```ts
+ * const data = fs.readFileSync(path);
+ * const pbf = new Pbf(data);
+ * // start reading here
+ * ```
+ */
+export class PbfReader extends BasePbf {
   /**
    * Reads a tag from the buffer, pulls out the tag and type and returns it.
    * @returns - {tag: number, type: number}
@@ -128,7 +119,7 @@ export class Pbf {
       const startPos = this.pos;
 
       this.type = val & 0x7;
-      readField(tag, input, this);
+      readField(tag, input, this as unknown as Pbf);
 
       if (this.pos === startPos) this.skip(val);
     }
@@ -298,12 +289,7 @@ export class Pbf {
     const pos = this.pos;
     this.pos = end;
 
-    if (end - pos >= TEXT_DECODER_MIN_LENGTH) {
-      // longer strings are fast with the built-in browser TextDecoder API
-      return this.textDecoder.decode(this.buf.subarray(pos, end));
-    }
-
-    return readUtf8(this.buf, pos, end);
+    return this.textDecoder.decode(this.buf.subarray(pos, end));
   }
 
   /**
@@ -318,15 +304,13 @@ export class Pbf {
     return buffer;
   }
 
-  // verbose for performance reasons; doesn't affect gzipped size
-
   /**
    * @param arr - the array to write to
    * @param isSigned - true if the numbers are signed
    * @returns - the `arr` input with the decoded numbers is also returned
    */
   readPackedVarint(arr: number[] = [], isSigned = false): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readVarint(isSigned));
     } else {
       const end = readPackedEnd(this);
@@ -340,7 +324,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded numbers is also returned
    */
   readPackedSVarint(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readSVarint());
     } else {
       const end = readPackedEnd(this);
@@ -354,7 +338,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded boolean values is also returned
    */
   readPackedBoolean(arr: boolean[] = []): boolean[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readBoolean());
     } else {
       const end = readPackedEnd(this);
@@ -368,7 +352,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded floats is also returned
    */
   readPackedFloat(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readFloat());
     } else {
       const end = readPackedEnd(this);
@@ -382,7 +366,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded doubles is also returned
    */
   readPackedDouble(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readDouble());
     } else {
       const end = readPackedEnd(this);
@@ -396,7 +380,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded unsigned integers is also returned
    */
   readPackedFixed32(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readFixed32());
     } else {
       const end = readPackedEnd(this);
@@ -410,7 +394,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded signed integers is also returned
    */
   readPackedSFixed32(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readSFixed32());
     } else {
       const end = readPackedEnd(this);
@@ -424,7 +408,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded unsigned 64-bit integers is also returned
    */
   readPackedFixed64(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readFixed64());
     } else {
       const end = readPackedEnd(this);
@@ -438,7 +422,7 @@ export class Pbf {
    * @returns - the `arr` input with the decoded signed 64-bit integers is also returned
    */
   readPackedSFixed64(arr: number[] = []): number[] {
-    if (this.type !== Pbf.Bytes) {
+    if (this.type !== BasePbf.Bytes) {
       arr.push(this.readSFixed64());
     } else {
       const end = readPackedEnd(this);
@@ -453,18 +437,42 @@ export class Pbf {
    */
   skip(val: number): void {
     const type = val & 0x7;
-    if (type === Pbf.Varint) {
+    if (type === BasePbf.Varint) {
       while (this.buf[this.pos++] > 0x7f) {
         continue;
       }
-    } else if (type === Pbf.Bytes) this.pos = this.readVarint() + this.pos;
-    else if (type === Pbf.Fixed32) this.pos += 4;
-    else if (type === Pbf.Fixed64) this.pos += 8;
+    } else if (type === BasePbf.Bytes) this.pos = this.readVarint() + this.pos;
+    else if (type === BasePbf.Fixed32) this.pos += 4;
+    else if (type === BasePbf.Fixed64) this.pos += 8;
     else throw new Error('Unimplemented type: ' + String(type));
   }
+}
 
-  // === WRITING =================================================================
-
+/**
+ * # Protobuffer Reader and Writer
+ *
+ * ## Description
+ * Create a new PBF instance and either read or write to it.
+ * Follows the early Protobuf spec supporting various types of encoding
+ * including messages (which are usually representative of class objects).
+ *
+ * ## Usage
+ *
+ * ### Reading:
+ * ```ts
+ * const data = fs.readFileSync(path);
+ * const pbf = new Pbf(data);
+ * ```
+ *
+ * ### Writing:
+ * ```ts
+ * const pbf = new Pbf();
+ * pbf.writeVarintField(1, 1);
+ * // ...
+ * const result = pbf.commit();
+ * ```
+ */
+export class Pbf extends PbfReader {
   /**
    * Write a tag and its associated type
    * @param tag - the tag to write
@@ -676,7 +684,7 @@ export class Pbf {
    * @param obj - the object to pass to the user defined function
    */
   writeMessage<T>(tag: number, fn: (obj: T, pbf: Pbf) => void, obj: T): void {
-    this.writeTag(tag, Pbf.Bytes);
+    this.writeTag(tag, BasePbf.Bytes);
     this.writeRawMessage(fn, obj);
   }
 
@@ -769,7 +777,7 @@ export class Pbf {
    * @param buffer - the buffer of bytes to write.
    */
   writeBytesField(tag: number, buffer: Buffer | Uint8Array | ArrayBuffer): void {
-    this.writeTag(tag, Pbf.Bytes);
+    this.writeTag(tag, BasePbf.Bytes);
     this.writeBytes(buffer);
   }
 
@@ -780,7 +788,7 @@ export class Pbf {
    * @param val - the unsigned 32-bit integer to write.
    */
   writeFixed32Field(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed32);
+    this.writeTag(tag, BasePbf.Fixed32);
     this.writeFixed32(val);
   }
 
@@ -791,7 +799,7 @@ export class Pbf {
    * @param val - the signed 32-bit integer to write.
    */
   writeSFixed32Field(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed32);
+    this.writeTag(tag, BasePbf.Fixed32);
     this.writeSFixed32(val);
   }
 
@@ -802,7 +810,7 @@ export class Pbf {
    * @param val - the unsigned 64-bit integer to write.
    */
   writeFixed64Field(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed64);
+    this.writeTag(tag, BasePbf.Fixed64);
     this.writeFixed64(val);
   }
 
@@ -813,7 +821,7 @@ export class Pbf {
    * @param val - the signed 64-bit integer to write.
    */
   writeSFixed64Field(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed64);
+    this.writeTag(tag, BasePbf.Fixed64);
     this.writeSFixed64(val);
   }
 
@@ -824,7 +832,7 @@ export class Pbf {
    * @param val - the unsigned number to write.
    */
   writeVarintField(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Varint);
+    this.writeTag(tag, BasePbf.Varint);
     this.writeVarint(val);
   }
 
@@ -835,7 +843,7 @@ export class Pbf {
    * @param val - the signed number to write.
    */
   writeSVarintField(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Varint);
+    this.writeTag(tag, BasePbf.Varint);
     this.writeSVarint(val);
   }
 
@@ -846,7 +854,7 @@ export class Pbf {
    * @param str - the string to write.
    */
   writeStringField(tag: number, str: string): void {
-    this.writeTag(tag, Pbf.Bytes);
+    this.writeTag(tag, BasePbf.Bytes);
     this.writeString(str);
   }
 
@@ -857,7 +865,7 @@ export class Pbf {
    * @param val - the float to write.
    */
   writeFloatField(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed32);
+    this.writeTag(tag, BasePbf.Fixed32);
     this.writeFloat(val);
   }
 
@@ -868,7 +876,7 @@ export class Pbf {
    * @param val - the double to write.
    */
   writeDoubleField(tag: number, val: number): void {
-    this.writeTag(tag, Pbf.Fixed64);
+    this.writeTag(tag, BasePbf.Fixed64);
     this.writeDouble(val);
   }
 
@@ -890,7 +898,7 @@ export class Pbf {
  * @param p - the protobuf
  * @returns - the decoded remainder
  */
-function readVarintRemainder(l: number, s: boolean, p: Pbf): number {
+function readVarintRemainder(l: number, s: boolean, p: Pbf | PbfReader): number {
   const buf = p.buf;
   let h;
   let b;
@@ -922,8 +930,8 @@ function readVarintRemainder(l: number, s: boolean, p: Pbf): number {
  * @param pbf - the protobuf
  * @returns - the end of the packed array
  */
-function readPackedEnd(pbf: Pbf): number {
-  return pbf.type === Pbf.Bytes ? pbf.readVarint() + pbf.pos : pbf.pos + 1;
+function readPackedEnd(pbf: Pbf | PbfReader): number {
+  return pbf.type === BasePbf.Bytes ? pbf.readVarint() + pbf.pos : pbf.pos + 1;
 }
 
 /**
@@ -1108,75 +1116,6 @@ function writePackedSFixed64(arr: number[], pbf: Pbf): void {
 }
 
 // Buffer code below from https://github.com/feross/buffer, MIT-licensed
-
-/**
- * Read UTF-8 string from buffer at "pos" till "end"
- * @param buf - the buffer of bytes
- * @param pos - the position in the buffer to read from
- * @param end - the position in the buffer to stop at
- * @returns - the utf-8 string
- */
-function readUtf8(buf: Uint8Array, pos: number, end: number): string {
-  let str = '';
-  let i = pos;
-
-  while (i < end) {
-    const b0 = buf[i];
-    let c: number | null = null; // codepoint
-    let bytesPerSequence = b0 > 0xef ? 4 : b0 > 0xdf ? 3 : b0 > 0xbf ? 2 : 1;
-
-    if (i + bytesPerSequence > end) break;
-
-    let b1: number, b2: number, b3: number;
-
-    if (bytesPerSequence === 1) {
-      if (b0 < 0x80) {
-        c = b0;
-      }
-    } else if (bytesPerSequence === 2) {
-      b1 = buf[i + 1];
-      if ((b1 & 0xc0) === 0x80) {
-        c = ((b0 & 0x1f) << 0x6) | (b1 & 0x3f);
-        if (c <= 0x7f) {
-          c = null;
-        }
-      }
-    } else if (bytesPerSequence === 3) {
-      b1 = buf[i + 1];
-      b2 = buf[i + 2];
-      if ((b1 & 0xc0) === 0x80 && (b2 & 0xc0) === 0x80) {
-        c = ((b0 & 0xf) << 0xc) | ((b1 & 0x3f) << 0x6) | (b2 & 0x3f);
-        if (c <= 0x7ff || (c >= 0xd800 && c <= 0xdfff)) {
-          c = null;
-        }
-      }
-    } else if (bytesPerSequence === 4) {
-      b1 = buf[i + 1];
-      b2 = buf[i + 2];
-      b3 = buf[i + 3];
-      if ((b1 & 0xc0) === 0x80 && (b2 & 0xc0) === 0x80 && (b3 & 0xc0) === 0x80) {
-        c = ((b0 & 0xf) << 0x12) | ((b1 & 0x3f) << 0xc) | ((b2 & 0x3f) << 0x6) | (b3 & 0x3f);
-        if (c <= 0xffff || c >= 0x110000) {
-          c = null;
-        }
-      }
-    }
-
-    if (c === null) {
-      c = 0xfffd;
-      bytesPerSequence = 1;
-    } else if (c > 0xffff) {
-      c -= 0x10000;
-      str += String.fromCharCode(((c >>> 10) & 0x3ff) | 0xd800);
-      c = 0xdc00 | (c & 0x3ff);
-    }
-
-    str += String.fromCharCode(c);
-    i += bytesPerSequence;
-  }
-
-  return str;
-}
 
 /**
  * Write a utf8 string to the buffer

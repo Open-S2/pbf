@@ -75,6 +75,16 @@ pbf.writeVarintField(1, 1);
 const result = pbf.commit();
 ```
 
+If you want to reduce build size and know you're only reading data, not writing to it, use the `PbfReader` class:
+
+```ts
+import { readFileSync } from 'fs';
+import { PbfReader } from 'pbf-ts';
+
+const pbf = new PbfReader(readFileSync(path));
+// ...
+```
+
 More complex example:
 
 ```ts

@@ -1,4 +1,4 @@
-import { Pbf as Protobuf } from '../src';
+import { PbfReader, Pbf as Protobuf } from '../src';
 import { expect, test } from 'bun:test';
 
 test('constructor', () => {
@@ -454,7 +454,7 @@ test('writeMessage & (readMessage/readFields)', () => {
      * @param pbf - the Protobuf object to read from
      * @param end - the position to stop at
      */
-    constructor(pbf: Protobuf, end = 0) {
+    constructor(pbf: Protobuf | PbfReader, end = 0) {
       pbf.readFields(Test.read, this, end);
     }
     /**
@@ -500,12 +500,12 @@ test('writeMessage & (readMessage/readFields)', () => {
   const data = pbf.commit();
   expect(data).toEqual(new Uint8Array([42, 9, 8, 1, 21, 205, 204, 12, 64, 24, 5]));
 
-  const pbf2 = new Protobuf(data);
+  const pbf2 = new PbfReader(data);
   expect(pbf2.readTag()).toEqual({ tag: 5, type: Protobuf.Bytes });
   const t2 = new Test(pbf2, pbf2.readVarint() + pbf2.pos);
   expect(t2).toEqual({ a: 1, b: 2.200000047683716, c: -3 } as Test);
 
-  const pbf3 = new Protobuf(data);
+  const pbf3 = new PbfReader(data);
   const t3 = Test.newTestDefault();
   expect(pbf3.readTag()).toEqual({ tag: 5, type: Protobuf.Bytes });
   pbf3.readMessage(Test.read, t3);
