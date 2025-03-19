@@ -1,6 +1,6 @@
 [package]
 name = "pbf"
-version = "1.0.0"
+version = "1.0.1"
 edition = "2021"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Mininmal protobuffer module; Build your own glue."

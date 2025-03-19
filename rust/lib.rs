@@ -68,9 +68,11 @@ pub mod bit_cast;
 
 extern crate alloc;
 
+use alloc::{
+    string::{String, ToString},
+    vec::Vec,
+};
 pub use bit_cast::BitCast;
-
-use alloc::{string::String, vec::Vec};
 use core::{cell::RefCell, mem::size_of};
 
 const MAX_VARINT_LENGTH: usize = u64::BITS as usize * 8 / 7 + 1;
@@ -382,7 +384,7 @@ impl Protobuf {
 
     /// Read in a string from the buffer.
     pub fn read_string(&mut self) -> String {
-        String::from_utf8(self.read_bytes()).expect("Invalid UTF-8")
+        String::from_utf8_lossy(&self.read_bytes()).to_string()
     }
 
     /// Read in a fixed size value from the buffer.
