@@ -50,5 +50,5 @@ jobs:
       shell: bash
 
     - name: Run Rust tests
-      run: cargo test --lib
+      run: cargo test --workspace
       shell: bash
