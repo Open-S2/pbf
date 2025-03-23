@@ -199,25 +199,19 @@ impl ProtoRead for TestMessage {
     }
 }
 
+// write the protobuf message
 let mut pb = Protobuf::new();
 let msg = TestMessage::new(1, "hello");
-pb.write_message(1, &msg);
+// top level proto messages usually write fields, but inner messages use `write_message`
+pb.write_fields(&msg);
 
+// take the data as a Vec<u8>
 let bytes = pb.take();
-let mut pb = Protobuf::from_input(RefCell::new(bytes));
 
-// first read in the field for the message
-let field = pb.read_field();
-assert_eq!(
-    field,
-    Field {
-        tag: 1,
-        r#type: Type::Bytes
-    }
-);
-
+// Let's put it back into a protobuffer for reading
+let mut pb = Protobuf::from_input(bytes);
 let mut msg = TestMessage::default();
-pb.read_message(&mut msg);
+pb.read_fields(&mut msg, None);
 assert_eq!(msg.a, 1);
 assert_eq!(msg.b, "hello");
 ```
