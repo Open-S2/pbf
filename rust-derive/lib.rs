@@ -1,3 +1,5 @@
+#![forbid(unsafe_code)]
+
 use darling::{self, FromField, FromVariant};
 use proc_macro::TokenStream;
 use proc_macro2::Span;

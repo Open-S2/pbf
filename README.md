@@ -153,6 +153,9 @@ expect(t2).toEqual({ a: 1, b: 2.200000047683716, c: -3 } as Test);
 
 ### Rust
 
+> [!NOTE]  
+> Safety Unsafe code is forbidden by a #![forbid(unsafe_code)] attribute in the root of the library.
+
 Install the package:
 
 ```bash
