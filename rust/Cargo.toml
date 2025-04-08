@@ -1,7 +1,7 @@
 [package]
 name = "pbf"
-version = "1.20.0"
-edition = "2021"
+version = "1.21.0"
+edition = "2024"
 authors = ["Craig O'Connor <oconnorct1@gmail.com>"]
 description = "Mininmal protobuffer module; Build your own glue."
 documentation = "https://docs.rs/pbf"
@@ -38,8 +38,8 @@ default = ["derive"]
 derive = ["pbf-derive"]
 
 [dependencies]
-pbf-core = { path = "../rust-core", version = "1.1.0" }
-pbf-derive = { path = "../rust-derive", optional = true, version = "1.0.0" }
+pbf-core = { path = "../rust-core", version = "1.2.0" }
+pbf-derive = { path = "../rust-derive", optional = true, version = "1.1.0" }
 
 [dev-dependencies]
 # tarpaulin = "*"

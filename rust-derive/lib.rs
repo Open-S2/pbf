@@ -2,9 +2,9 @@
 
 use darling::{self, FromField, FromVariant};
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::Span;
-use proc_macro_crate::{crate_name, FoundCrate};
-use syn::{parse_macro_input, Data, DeriveInput, Ident};
+use syn::{Data, DeriveInput, Ident, parse_macro_input};
 
 mod bitcast;
 mod read;

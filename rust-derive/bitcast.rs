@@ -1,8 +1,8 @@
 use proc_macro::TokenStream;
+use proc_macro_crate::{FoundCrate, crate_name};
 use proc_macro2::Span;
-use proc_macro_crate::{crate_name, FoundCrate};
 use quote::quote;
-use syn::{parse_macro_input, Data, DeriveInput, Fields, Ident};
+use syn::{Data, DeriveInput, Fields, Ident, parse_macro_input};
 
 pub fn expand_bitcast(input: TokenStream) -> TokenStream {
     let input = parse_macro_input!(input as DeriveInput);

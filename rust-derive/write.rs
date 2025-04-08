@@ -232,7 +232,7 @@ fn field_type_to_write_method(
         Type::Path(TypePath { path, .. }) if path.segments.last().unwrap().ident == "Option" => {
             if let PathArguments::AngleBracketed(ref args) = path.segments.last().unwrap().arguments
             {
-                if let Some(GenericArgument::Type(ref inner_type)) = args.args.first() {
+                if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
                     if let Some(internal_field) =
                         field_type_to_write_method(inner_type, field_name, field_index, attr, true)
                     {

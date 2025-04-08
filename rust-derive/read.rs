@@ -155,7 +155,7 @@ fn field_type_to_read_method(
         Type::Path(TypePath { path, .. }) if path.segments.last().unwrap().ident == "Option" => {
             if let PathArguments::AngleBracketed(ref args) = path.segments.last().unwrap().arguments
             {
-                if let Some(GenericArgument::Type(ref inner_type)) = args.args.first() {
+                if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
                     return field_type_to_read_method(
                         inner_type,
                         field_name,
@@ -342,7 +342,7 @@ fn field_type_to_read_enum(
         Type::Path(TypePath { path, .. }) if path.segments.last().unwrap().ident == "Option" => {
             if let PathArguments::AngleBracketed(ref args) = path.segments.last().unwrap().arguments
             {
-                if let Some(GenericArgument::Type(ref inner_type)) = args.args.first() {
+                if let Some(GenericArgument::Type(inner_type)) = args.args.first() {
                     return field_type_to_read_enum(inner_type, name, variant_name, attr, true);
                 }
             }
