@@ -39,8 +39,8 @@ default = ["derive"]
 derive = ["pbf-derive"]
 
 [dependencies]
-pbf-core = { path = "../rust-core", version = "1.2.0" }
-pbf-derive = { path = "../rust-derive", optional = true, version = "1.1.0" }
+pbf-core = { path = "../rust-core" }
+pbf-derive = { path = "../rust-derive", optional = true }
 
 [dev-dependencies]
 # tarpaulin = "*"
