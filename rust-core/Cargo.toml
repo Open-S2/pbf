@@ -1,6 +1,6 @@
 [package]
 name = "pbf-core"
-publish = false
+publish = true
 version.workspace = true
 edition.workspace = true
 authors.workspace = true
