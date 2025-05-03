@@ -27,6 +27,7 @@ need_stdout = false
 command = [
     "cargo",
     "test",
+    "--workspace",
     "--color",
     "always",
     "--",
@@ -42,7 +43,7 @@ need_stdout = true
 command = [
     "sh",
     "-c",
-    "cargo tarpaulin --out xml > /dev/null 2>&1 && pycobertura show cobertura.xml",
+    "cargo llvm-cov --lcov --output-path coverage/lcov.info --workspace",
 ]
 need_stdout = true
 

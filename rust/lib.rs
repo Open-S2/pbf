@@ -1,6 +1,7 @@
 #![no_std]
 #![forbid(unsafe_code)]
 #![deny(missing_docs)]
+#![cfg_attr(docsrs, feature(doc_cfg))]
 //! The `pbf` Rust crate provides functionalities to read and write Protocol Buffers (protobuf) messages.
 //! This crate is a 0 dependency package that uses `no_std` and is intended to be used in
 //! embedded systems and WASM applications. The crate is designed to be small and efficient,
