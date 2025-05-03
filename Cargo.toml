@@ -16,6 +16,10 @@ categories = ["encoding", "wasm", "embedded", "no-std"]
 keywords = ["pbf", "protobuffers", "minimal", "low-cost-code"]
 license = "MIT"
 
+[workspace.dependencies]
+pbf-core = { path = "rust-core", version = "1.22.0" }
+pbf-derive = { path = "rust-derive", version = "1.22.0" }
+
 [profile.bench]
 opt-level = 3
 
